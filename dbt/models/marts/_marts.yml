@@ -1,0 +1,88 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: Calendar dimension, one row per day from `calendar_start_date` to one year ahead.
+    columns:
+      - name: date_day
+        data_tests: [unique, not_null]
+
+  - name: dim_currency
+    description: Currencies quoted against the euro.
+    columns:
+      - name: currency_code
+        data_tests: [unique, not_null]
+
+  - name: dim_indicator
+    description: Macroeconomic indicators (FRED series) with units and frequency.
+    columns:
+      - name: series_id
+        data_tests: [unique, not_null]
+
+  - name: fct_fx_rates_daily
+    description: >
+      Daily EUR reference rates with returns and risk metrics.
+      Grain: one row per currency per ECB business day.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [currency_code, rate_date]
+    columns:
+      - name: currency_code
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_currency')
+                field: currency_code
+      - name: rate_date
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: eur_rate
+        description: Units of currency per 1 EUR.
+        data_tests: [not_null, positive_values]
+      - name: daily_return
+        description: Simple return vs previous business day. Positive = euro appreciated. Null on the first day.
+      - name: volatility_20d_annualised
+        description: Std. dev. of the last 20 daily returns × √252 (annualised).
+
+  - name: fct_macro_indicators_monthly
+    description: >
+      Macro indicators at monthly grain with MoM and YoY changes.
+      Grain: one row per series per month.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [series_id, month_start]
+    columns:
+      - name: series_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_indicator')
+                field: series_id
+      - name: month_start
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: value
+        description: Value in the indicator's units; monthly average for daily series.
+        data_tests: [not_null]
+      - name: yoy_pct_change
+        description: Change vs the same month one year earlier, as a fraction (0.03 = +3%).
+
+  - name: rpt_macro_fx_monthly
+    description: Wide monthly table for the dashboard, combining EUR/USD with US macro indicators.
+    columns:
+      - name: month_start
+        data_tests: [unique, not_null]
+      - name: eur_usd_avg
+        data_tests: [not_null, positive_values]

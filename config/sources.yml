@@ -1,0 +1,35 @@
+# Source configuration. Adding a currency or a FRED series is a config change, not a code change.
+
+ecb:
+  # ECB Data Portal, SDMX REST API (dataset EXR = euro foreign exchange reference rates)
+  base_url: https://data-api.ecb.europa.eu/service/data/EXR
+  currencies: [USD, GBP, JPY, CHF, CNY]
+  # Re-read the last N days on every run to pick up late publications/corrections
+  lookback_days: 7
+
+fred:
+  # FRED graph CSV endpoint: public, no API key needed (see docs/decisions/0002)
+  base_url: https://fred.stlouisfed.org/graph/fredgraph.csv
+  # Macro series get revised after first publication: re-read a wider window
+  lookback_days: 120
+  series:
+    - id: CPIAUCSL
+      name: Consumer Price Index for All Urban Consumers
+      units: Index 1982-1984=100
+      frequency: monthly
+      category: inflation
+    - id: UNRATE
+      name: Unemployment Rate
+      units: Percent
+      frequency: monthly
+      category: labour_market
+    - id: FEDFUNDS
+      name: Effective Federal Funds Rate
+      units: Percent
+      frequency: monthly
+      category: interest_rates
+    - id: DGS10
+      name: 10-Year Treasury Constant Maturity Rate
+      units: Percent
+      frequency: daily
+      category: interest_rates

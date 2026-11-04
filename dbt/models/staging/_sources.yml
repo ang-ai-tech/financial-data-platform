@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: ecb
+    description: European Central Bank — euro foreign exchange reference rates, loaded by `findata`.
+    schema: raw
+    tables:
+      - name: ecb_exchange_rates
+        description: Daily reference rate, units of currency per 1 EUR. One row per currency and day.
+
+  - name: fred
+    description: Federal Reserve Bank of St. Louis — FRED economic series, loaded by `findata`.
+    schema: raw
+    tables:
+      - name: fred_observations
+        description: One row per series and observation date, as published (latest vintage).
+      - name: fred_series
+        description: Curated series metadata from config/sources.yml.

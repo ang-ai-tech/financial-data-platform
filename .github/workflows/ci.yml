@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    name: Lint & unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest
+
+  dbt:
+    name: dbt build on sample data
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: findata
+          POSTGRES_PASSWORD: findata
+          POSTGRES_DB: warehouse
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U findata -d warehouse"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: findata
+      PGPASSWORD: findata
+      PGDATABASE: warehouse
+      DBT_SEND_ANONYMOUS_USAGE_STATS: "False"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . dbt-core==1.12.6 dbt-postgres==1.11.0
+      # Same upsert code path as production, but from the CSV snapshot: no network calls in CI
+      - run: findata load-sample --dir data/sample
+      - run: dbt build --profiles-dir .
+        working-directory: dbt

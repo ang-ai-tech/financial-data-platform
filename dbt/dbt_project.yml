@@ -1,0 +1,30 @@
+name: findata
+version: "1.0.0"
+config-version: 2
+profile: findata
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+vars:
+  calendar_start_date: "2015-01-01"
+
+models:
+  findata:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
+
+seeds:
+  findata:
+    +schema: seeds

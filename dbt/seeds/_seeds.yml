@@ -1,0 +1,9 @@
+version: 2
+
+seeds:
+  - name: currencies
+    description: Reference list of currencies with display names and region. Maintained by hand.
+    columns:
+      - name: currency_code
+        description: ISO 4217 code.
+        data_tests: [unique, not_null]

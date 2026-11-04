@@ -1,0 +1,71 @@
+name: findata
+
+x-warehouse-env: &warehouse-env
+  PGHOST: postgres
+  PGPORT: "5432"
+  PGUSER: ${POSTGRES_USER:-findata}
+  PGPASSWORD: ${POSTGRES_PASSWORD:-findata}
+  PGDATABASE: warehouse
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-findata}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-findata}
+      POSTGRES_DB: warehouse
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d warehouse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  airflow:
+    build:
+      context: .
+      dockerfile: docker/airflow.Dockerfile
+    # Single-container Airflow (scheduler, API server, DAG processor) — fine for a local demo
+    command: standalone
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *warehouse-env
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-findata}:${POSTGRES_PASSWORD:-findata}@postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      # Local demo only: no login screen
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+      FINDATA_CONFIG: /opt/airflow/config/sources.yml
+      FINDATA_START_DATE: ${FINDATA_START_DATE:-2015-01-01}
+      # Keep dbt artefacts out of the mounted project folder
+      DBT_TARGET_PATH: /tmp/dbt-target
+      DBT_LOG_PATH: /tmp/dbt-logs
+      DBT_SEND_ANONYMOUS_USAGE_STATS: "False"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./dbt:/opt/airflow/dbt
+      - ./config:/opt/airflow/config:ro
+      - ./data/sample:/opt/findata-sample:ro
+    ports:
+      - "${AIRFLOW_PORT:-8080}:8080"
+
+  dashboard:
+    build:
+      context: dashboard
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *warehouse-env
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+
+volumes:
+  pgdata:
