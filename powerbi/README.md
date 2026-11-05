@@ -1,4 +1,12 @@
-# Power BI report
+# Power BI Report — Work in Progress
+
+This folder contains the implementation guide and design specifications for a planned Power BI report built on the same dbt marts used by the Streamlit
+dashboard.
+
+The report will reuse the existing dimensional model, with PostgreSQL as the data source in Import mode.
+
+The `.pbix` file and report screenshots will be added once the implementation is complete.
+
 
 A Power BI report built on the same dbt **marts** used by the Streamlit dashboard: one dimensional model, two consumers.
 
